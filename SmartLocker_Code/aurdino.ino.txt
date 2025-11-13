@@ -1,0 +1,205 @@
+#include <LiquidCrystal.h>
+String rx;
+LiquidCrystal lcd(8,9,10,11,12,13); //
+#define btn_1 2
+#define btn_2 3
+#define btn_3 4
+#define btn_4 5
+#define BUZZ 19
+
+char otp_send_buff[]={'\0','\0','\0','\0','\0'};
+char otp_enter_buff[]={'\0','\0','\0','\0','\0'};
+int i=0,j=0,vote=0;
+int buz=0;
+int ok_not=0;
+
+void send_sms(void); // otp
+char getkey();
+void enter_otp();
+void send_thanks(void);
+
+void setup()  
+{
+  Serial.begin(9600); delay(100);
+  pinMode(18,INPUT); delay(100);
+  pinMode(BUZZ,OUTPUT); delay(100);
+  pinMode(btn_1,INPUT); delay(100);
+  pinMode(btn_2,INPUT); delay(100);
+  pinMode(btn_3,INPUT); delay(100);
+  pinMode(btn_4,INPUT); delay(100);
+  lcd.begin(16, 2); delay(100);
+  pinMode(3,OUTPUT); 
+  pinMode(4,OUTPUT); 
+  pinMode(5,OUTPUT);  
+  pinMode(6,OUTPUT);
+  pinMode(7,OUTPUT); 
+ digitalWrite(7,0);
+}
+
+void loop()                 
+{
+  if (Serial.available() > 0) {
+    rx = Serial.readStringUntil('\n');
+    rx.trim();
+
+    if (rx.length() >= 4) {
+      for (int k = 0; k < 4; k++) otp_send_buff[k] = rx.charAt(k);
+      otp_send_buff[4] = '\0';
+
+      lcd.clear();
+      lcd.print("PW Received");
+      delay(1000);
+
+   
+  enter_otp();            
+}
+
+}
+else
+{
+   lcd.clear();
+  lcd.print("Waiting Ack");digitalWrite(BUZZ,0);digitalWrite(7,0);
+  delay(1000); 
+}
+}
+
+void enter_otp()
+{
+  j=0;
+  while(j<3)
+  {
+    lcd.clear(); delay(100);
+    lcd.print("Enter Pin ");delay(100);
+    lcd.setCursor(5, 1);delay(100);
+    i=0;
+    while(i<4)
+    {
+      otp_enter_buff[i++]=getkey();
+      lcd.print(otp_enter_buff[i-1]);
+    }
+    delay(2000);
+    
+    if(otp_enter_buff[0]==otp_send_buff[0] &&
+       otp_enter_buff[1]==otp_send_buff[1] &&
+       otp_enter_buff[2]==otp_send_buff[2] &&
+       otp_enter_buff[3]==otp_send_buff[3])
+    {
+      ok_not = 1;
+    }
+    else
+    {
+      ok_not = 0;
+    }
+
+    if(ok_not == 1)
+    {
+      lcd.clear(); delay(100); digitalWrite(7,1);
+      lcd.print("Pin matched  ");delay(100);
+      lcd.setCursor(0, 1);delay(100);j=10;
+       
+    }
+    else
+    {
+      j++;
+      if(j>=3)
+      {
+        digitalWrite(BUZZ,1);
+        lcd.clear(); delay(100);
+        lcd.print("Maximum try out");delay(100);
+        lcd.setCursor(0, 1);delay(100);
+        lcd.print(" Access denied ");delay(5000);
+        digitalWrite(BUZZ,0);
+
+
+        
+        while(1)
+        {int rfids=digitalRead(18);
+        if(rfids==0)
+        {
+        lcd.clear(); delay(100);
+        lcd.print("Admin Approval");delay(100);
+        lcd.setCursor(0, 1);delay(100);
+        lcd.print(" Done");delay(5000);    digitalWrite(7,1);  
+        while(1)
+        {
+          loop();
+        }
+        }
+        else
+        {
+        lcd.clear(); delay(100);
+        lcd.print("Admin Approval");delay(100);
+        lcd.setCursor(0, 1);delay(100);
+        lcd.print(" Needed");  
+        }}
+        
+      }
+      else
+      {
+        lcd.clear(); delay(100);
+        lcd.print("Not matched");delay(100);
+        lcd.setCursor(0, 1);delay(100);
+        lcd.print("   Try again   ");delay(2000); 
+               
+      }
+    }
+  }
+
+  if(j==10)
+  {
+    lcd.clear(); delay(100);
+      lcd.print(" Thanks for Using");delay(100);
+       digitalWrite(18,0);delay(10000);delay(10000);
+    }
+    else
+    {
+      digitalWrite(18,1);
+    }
+  
+    lcd.clear(); delay(100);
+      lcd.print(" Thanks for Using ");delay(100);digitalWrite(18,1);
+}
+
+
+ 
+char getkey()
+{
+  int a=0;
+  int b,c,d,e;
+  char ret;
+  while(a<1)
+  {
+    b = digitalRead(btn_1); delay(50);
+    if(b==1)
+    {
+      ret = '1';
+      while(digitalRead(btn_1));
+      a++;
+    }
+
+    c = digitalRead(btn_2); delay(50);
+    if(c==1)
+    {
+      ret = '2';
+      while(digitalRead(btn_2));
+      a++;
+    }
+
+    d = digitalRead(btn_3); delay(50);
+    if(d==1)
+    {
+      ret = '3';
+      while(digitalRead(btn_3));
+      a++;
+    }
+
+    e = digitalRead(btn_4); delay(50);
+    if(e==1)
+    {
+      ret = '4';
+      while(digitalRead(btn_4));
+      a++;
+    }    
+  }
+  return (ret);
+}

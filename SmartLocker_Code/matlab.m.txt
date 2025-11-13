@@ -1,0 +1,495 @@
+function smart_locker_system
+%% -------------------- Main Menu --------------------
+global password;
+screenSize = get(0, 'ScreenSize');
+screenWidth = screenSize(3);
+screenHeight = screenSize(4);
+
+% Enhanced color scheme
+bgColor = [0.95 0.98 0.95]; % lighter green
+accentColor = [0.2 0.6 0.3]; % dark green
+headerColor = [0.1 0.4 0.2]; % darker green for headers
+
+hMain = figure('Name','Smart Locker System','NumberTitle','off', ...
+    'Position',[0 0 screenWidth screenHeight], ...
+    'MenuBar','none','ToolBar','none','Color',bgColor, ...
+    'Resize','off');
+
+% Header with better styling
+uicontrol('Style','text','Parent',hMain,'String','SMART CLOAK ROOM LOCKER', ...
+    'FontSize',18,'FontWeight','bold','ForegroundColor',headerColor, ...
+    'BackgroundColor',bgColor,'Position',[screenWidth/2-200, screenHeight-180, 400, 50]);
+
+% Subtitle
+uicontrol('Style','text','Parent',hMain,'String','Secure Storage Solutions', ...
+    'FontSize',16,'FontWeight','normal','ForegroundColor',accentColor, ...
+    'BackgroundColor',bgColor,'Position',[screenWidth/2-150, screenHeight-230, 300, 30]);
+
+% Register Button - FIXED POSITION
+uicontrol('Style','pushbutton','Parent',hMain,'String','📝 REGISTER', ...
+    'Position',[screenWidth/2-150, screenHeight/2, 300, 60], 'FontSize',16,'FontWeight','bold',...
+    'ForegroundColor','white','BackgroundColor',accentColor,...
+    'Callback',@(src,evt) registerGUI());
+
+% Login Button - FIXED POSITION
+uicontrol('Style','pushbutton','Parent',hMain,'String','🔑 LOGIN', ...
+    'Position',[screenWidth/2-150, screenHeight/2-100, 300, 60], 'FontSize',16,'FontWeight','bold',...
+    'ForegroundColor','white','BackgroundColor',accentColor,...
+    'Callback',@(src,evt) loginGUI());
+
+% Footer
+uicontrol('Style','text','Parent',hMain,'String','© 2025 Smart Locker System | Secure • Convenient • Reliable', ...
+    'FontSize',10,'ForegroundColor',[0.4 0.4 0.4],'BackgroundColor',bgColor,...
+    'Position',[screenWidth/2-200, 30, 400, 20]);
+
+%% -------------------- Password Masking --------------------
+function passwordKeyPress(src,evt,fig)
+    stored = getappdata(fig,'passwordStore');
+    if isempty(stored), stored = ''; end
+    k = evt.Key; ch = evt.Character;
+    switch k
+        case 'backspace'
+            if ~isempty(stored)
+                stored = stored(1:end-1);
+            end
+        case 'delete'
+            stored = '';
+        case {'leftarrow','rightarrow','uparrow','downarrow','home','end','shift','control','alt'}
+        otherwise
+            if ~isempty(ch) && isstrprop(ch,'digit') % only digits
+                stored = [stored ch];
+            end
+    end
+    setappdata(fig,'passwordStore',stored);
+    set(src,'String',repmat('•',1,numel(stored)));
+end
+
+%% -------------------- Registration GUI --------------------
+function registerGUI()
+screenSize = get(0, 'ScreenSize'); screenWidth = screenSize(3); screenHeight = screenSize(4);
+fig = figure('Name','Register','NumberTitle','off', ...
+    'Position',[0 0 screenWidth screenHeight], ...
+    'MenuBar','none','ToolBar','none','Color',bgColor, 'Resize','off');
+
+% Header
+uicontrol('Style','text','Parent',fig,'String','📝 USER REGISTRATION','FontSize',24,'FontWeight','bold', ...
+    'ForegroundColor',headerColor,'BackgroundColor',bgColor,'Position',[screenWidth/2-200, screenHeight-180, 400, 40]);
+
+% Name Field - FIXED POSITION
+uicontrol('Style','text','Parent',fig,'String',' Full Name:','FontSize',14,'HorizontalAlignment','left', ...
+    'Position',[screenWidth/2-200, screenHeight/2+100, 150, 30],'ForegroundColor','black','BackgroundColor',bgColor);
+hName = uicontrol('Style','edit','Parent',fig,'FontSize',12,'Position',[screenWidth/2-50, screenHeight/2+100, 250, 35],...
+    'BackgroundColor','white','ForegroundColor','black');
+
+% Mobile Field - FIXED POSITION
+uicontrol('Style','text','Parent',fig,'String',' Mobile Number:','FontSize',14,'HorizontalAlignment','left', ...
+    'Position',[screenWidth/2-200, screenHeight/2+50, 150, 30],'ForegroundColor','black','BackgroundColor',bgColor);
+hMobile = uicontrol('Style','edit','Parent',fig,'FontSize',12,'Position',[screenWidth/2-50, screenHeight/2+50, 250, 35],...
+    'BackgroundColor','white','ForegroundColor','black');
+
+% Password Field - FIXED POSITION
+uicontrol('Style','text','Parent',fig,'String',' Password (1111-4444):','FontSize',16,'HorizontalAlignment','left', ...
+    'Position',[screenWidth/2-200, screenHeight/2, 180, 30],'ForegroundColor','black','BackgroundColor',bgColor);
+hPass = uicontrol('Style','edit','Parent',fig,'FontSize',12,'Position',[screenWidth/2-20, screenHeight/2, 220, 35],...
+    'BackgroundColor','white','ForegroundColor','black');
+
+setappdata(fig,'passwordStore',''); set(hPass,'String','');
+set(hPass,'KeyPressFcn',@(src,evt) passwordKeyPress(src,evt,fig));
+
+% Buttons - FIXED POSITIONS
+uicontrol('Style','pushbutton','Parent',fig,'String','REGISTER', ...
+    'Position',[screenWidth/2-180, 150, 120, 50], 'FontSize',12,'FontWeight','bold',...
+    'ForegroundColor','white','BackgroundColor',accentColor,...
+    'Callback',@(src,evt) registerCallback(hName,hMobile,hPass,fig));
+
+uicontrol('Style','pushbutton','Parent',fig,'String',' CLEAR', ...
+    'Position',[screenWidth/2-30, 150, 120, 50],'FontSize',12,'FontWeight','bold',...
+    'ForegroundColor','white','BackgroundColor',[0.8 0.6 0.2],...
+    'Callback',@(src,evt) clearFields(hName,hMobile,hPass,fig));
+
+uicontrol('Style','pushbutton','Parent',fig,'String','BACK', ...
+    'Position',[screenWidth/2+120, 150, 120, 50],'FontSize',12,'FontWeight','bold',...
+    'ForegroundColor','white','BackgroundColor',[0.7 0.3 0.3],...
+    'Callback',@(src,evt) close(fig));
+end
+
+function clearFields(hName,hMobile,hPass,fig)
+set(hName,'String',''); set(hMobile,'String',''); set(hPass,'String','');
+setappdata(fig,'passwordStore','');
+end
+
+function registerCallback(hName,hMobile,hPass,fig)
+name = strtrim(get(hName,'String'));
+mobile = strtrim(get(hMobile,'String'));
+password = getappdata(fig,'passwordStore');
+
+if isempty(name), errordlg('Please enter a name.','Validation Error'); return; end
+if isempty(mobile) || ~all(isstrprop(mobile,'digit')) || numel(mobile)~=10
+    errordlg('Mobile must be 10 digits (numbers only).','Validation Error'); return;
+end
+if isempty(password) || numel(password)~=4 || ~all(isstrprop(password,'digit'))
+    errordlg('Password must be 4 digits (numeric only).','Validation Error'); return;
+end
+numPass = str2double(password);
+if numPass < 1111 || numPass > 4444
+    errordlg('Password must be between 1111 and 4444.','Validation Error'); return;
+end
+
+if exist('users.mat','file')
+    load('users.mat','users');
+    if ~isstruct(users)
+        users = struct('Name', {}, 'Mobile', {}, 'Password', {});
+    end
+else
+    users = struct('Name', {}, 'Mobile', {}, 'Password', {});
+end
+
+if ~isempty(users) && any(strcmp({users.Mobile},mobile))
+    errordlg('Mobile already registered.','Duplicate');
+    return;
+end
+
+newUser = struct('Name',name,'Mobile',mobile,'Password',password);
+users(end+1) = newUser;
+save('users.mat','users');
+msgbox(sprintf('✅ Registered %s successfully!',name),'Success','modal');
+clearFields(hName,hMobile,hPass,fig);
+end
+
+%% -------------------- Login GUI --------------------
+function loginGUI()
+screenSize = get(0, 'ScreenSize'); screenWidth=screenSize(3); screenHeight=screenSize(4);
+fig=figure('Name','Login','NumberTitle','off','Position',[0 0 screenWidth screenHeight], ...
+    'MenuBar','none','ToolBar','none','Color',bgColor, 'Resize','off');
+
+% Header
+uicontrol('Style','text','Parent',fig,'String',' 🔑USER LOGIN','FontSize',24,'FontWeight','bold', ...
+    'Position',[screenWidth/2-120, screenHeight-180, 400, 40],'ForegroundColor',headerColor,'BackgroundColor',bgColor);
+
+% Mobile Field - FIXED POSITION
+uicontrol('Style','text','Parent',fig,'String',' Mobile Number:','FontSize',14,'HorizontalAlignment','left', ...
+    'Position',[screenWidth/2-200, screenHeight/2+50, 150, 30],'ForegroundColor','black','BackgroundColor',bgColor);
+hMobile=uicontrol('Style','edit','Parent',fig,'FontSize',12,'Position',[screenWidth/2-50, screenHeight/2+50, 250, 35],'BackgroundColor','white');
+
+% Password Field - FIXED POSITION
+uicontrol('Style','text','Parent',fig,'String',' Password:','FontSize',14,'HorizontalAlignment','left', ...
+    'Position',[screenWidth/2-200, screenHeight/2, 150, 30],'ForegroundColor','black','BackgroundColor',bgColor);
+hPass=uicontrol('Style','edit','Parent',fig,'FontSize',12,'Position',[screenWidth/2-50, screenHeight/2, 250, 35],'BackgroundColor','white');
+
+setappdata(fig,'passwordStore',''); set(hPass,'String','');
+set(hPass,'KeyPressFcn',@(src,evt) passwordKeyPress(src,evt,fig));
+
+% Buttons - FIXED POSITIONS
+uicontrol('Style','pushbutton','Parent',fig,'String',' LOGIN', ...
+    'Position',[screenWidth/2-120, 150, 120, 50], 'FontSize',12,'FontWeight','bold',...
+    'ForegroundColor','white','BackgroundColor',accentColor,...
+    'Callback',@(src,evt) loginCallback(hMobile,hPass));
+
+uicontrol('Style','pushbutton','Parent',fig,'String',' BACK', ...
+    'Position',[screenWidth/2+40, 150, 120, 50], 'FontSize',12,'FontWeight','bold',...
+    'ForegroundColor','white','BackgroundColor',[0.7 0.3 0.3],...
+    'Callback',@(src,evt) close(fig));
+end
+
+%% -------------------- Login Callback --------------------
+function loginCallback(hMobile,hPass)
+mobile=strtrim(get(hMobile,'String'));
+password=getappdata(gcf,'passwordStore');
+
+if strcmpi(mobile,'admin') && strcmp(password,'admin')
+    msgbox('🔓 Admin Access Granted','Admin','modal'); return;
+end
+
+if ~exist('users.mat','file'), errordlg('No users registered','Login Error'); return; end
+load('users.mat','users');
+idx=find(strcmp({users.Mobile},mobile),1);
+if isempty(idx), errordlg('Mobile not registered','Login Error'); return; end
+if strcmp(users(idx).Password,password)
+    msgbox(sprintf('🎉 Welcome, %s!',users(idx).Name),'Login Success','modal');
+    arduinoPort = "COM5"; % Change to your Arduino COM port
+    baudRate = 9600;
+    if ~isempty(instrfind('Port',arduinoPort))
+        fclose(instrfind('Port',arduinoPort));
+        delete(instrfind('Port',arduinoPort));
+    end
+    s = serialport(arduinoPort, baudRate);
+    writeline(s, password); pause(2); writeline(s, password); pause(2);
+    clear s;
+    lockerGUI(users(idx).Name);
+else, errordlg('Incorrect password','Login Error'); end
+end
+
+%% -------------------- Locker GUI --------------------
+function lockerGUI(userName)
+screenSize = get(0, 'ScreenSize'); screenWidth=screenSize(3); screenHeight=screenSize(4);
+fig=figure('Name','Locker System','NumberTitle','off','Position',[0 0 screenWidth screenHeight], ...
+    'Color',bgColor, 'Resize','off');
+
+% Header
+uicontrol('Style','text','Parent',fig,'String',sprintf('Welcome, %s!',userName), ...
+    'FontSize',24,'FontWeight','bold','ForegroundColor',headerColor,'BackgroundColor',bgColor,...
+    'Position',[screenWidth/2-250, screenHeight-130, 500, 40]);
+
+uicontrol('Style','text','Parent',fig,'String','Select a locker to book', ...
+    'FontSize',15,'ForegroundColor',accentColor,'BackgroundColor',bgColor,...
+    'Position',[screenWidth/2-200, screenHeight-160, 400, 30]);
+
+% Locker configurations
+lockerColors = {[0.3 0.7 1], [0.9 0.6 0.2], [0.4 0.8 0.4]}; % Blue, Orange, Green
+lockerIcons = {'🔵', '🟠', '🟢'};
+
+for i=1:3
+    lockerX = 200 + 400*(i-1);
+    
+    uicontrol('Style','text','Parent',fig,'String',sprintf('%s LOCKER %d',lockerIcons{i},i),...
+        'FontSize',18,'FontWeight','bold','ForegroundColor',lockerColors{i},'BackgroundColor',bgColor,...
+        'Position',[lockerX, screenHeight/2+150, 200, 40]);
+    
+    uicontrol('Style','text','Parent',fig,'String','🟢 AVAILABLE','FontSize',14,'FontWeight','bold',...
+        'ForegroundColor',[0 0.5 0],'BackgroundColor',bgColor,...
+        'Position',[lockerX, screenHeight/2+120, 200, 30],'Tag',sprintf('Status%d',i));
+
+    uicontrol('Style','text','Parent',fig,'String','🔒',...
+        'FontSize',60,'ForegroundColor',lockerColors{i},'BackgroundColor',bgColor,...
+        'Position',[lockerX+70, screenHeight/2+50, 60, 60]);
+    
+    uicontrol('Style','text','Parent',fig,'String','Size: Medium (12"×18")',...
+        'FontSize',11,'ForegroundColor','black','BackgroundColor',bgColor,...
+        'Position',[lockerX, screenHeight/2+20, 200, 25]);
+    
+    uicontrol('Style','text','Parent',fig,'String','Rate: rs:5/5min ',...
+        'FontSize',11,'ForegroundColor','black','BackgroundColor',bgColor,...
+        'Position',[lockerX, screenHeight/2-5, 200, 25]);
+
+    hBook=uicontrol('Style','pushbutton','Parent',fig,'String','BOOK NOW',...
+        'Position',[lockerX, screenHeight/2-50, 200, 45],'FontSize',12,'FontWeight','bold',...
+        'ForegroundColor','white','BackgroundColor',accentColor);
+    
+    hEnd=uicontrol('Style','pushbutton','Parent',fig,'String','END SESSION',...
+        'Position',[lockerX, screenHeight/2-110, 200, 45],'FontSize',12,'FontWeight','bold',...
+        'ForegroundColor','white','BackgroundColor',[0.8 0.2 0.2],'Enable','off');
+
+    set(hBook,'Callback',@(~,~) startSession(i,hBook,hEnd,userName));
+    set(hEnd,'Callback',@(~,~) endSession(i,hBook,hEnd,userName));
+end
+
+uicontrol('Style','text','Parent',fig,'String','💡 Tip: Book your locker and pay securely online or with cash', ...
+    'FontSize',12,'ForegroundColor',[0.5 0.5 0.5],'BackgroundColor',bgColor,...
+    'Position',[screenWidth/2-250, 40, 500, 25]);
+end
+
+%% -------------------- Session Start --------------------
+function startSession(lockerNum,hBook,hEnd,userName)
+statusLabel=findobj('Tag',sprintf('Status%d',lockerNum));
+set(statusLabel,'String','🔴 BOOKED','ForegroundColor',[0.8 0 0]);
+set(hBook,'Enable','off'); 
+set(hEnd,'Enable','on');
+setappdata(0,['startTime' num2str(lockerNum)],datetime('now'));
+
+msgbox(sprintf('✅ Locker %d booked successfully!\nStart Time: %s', lockerNum, datestr(datetime('now'))),...
+    'Booking Confirmed','modal');
+end
+
+%% -------------------- Session End --------------------
+function endSession(lockerNum,hBook,hEnd,userName)
+statusLabel=findobj('Tag',sprintf('Status%d',lockerNum));
+set(statusLabel,'String','🟢 AVAILABLE','ForegroundColor',[0 0.5 0]);
+set(hBook,'Enable','on'); 
+set(hEnd,'Enable','off');
+
+startTime=getappdata(0,['startTime' num2str(lockerNum)]); 
+endTime=datetime('now'); 
+
+durationSec = seconds(endTime-startTime); % total seconds
+minutesPart = floor(durationSec/60);
+secondsPart = round(mod(durationSec,60));
+
+% Display as "X min Y sec"
+durationStr = sprintf('%d min %d sec', minutesPart, secondsPart);
+
+% Determine amount based on table
+durationMins = ceil(durationSec/60);
+if durationMins<=5
+    amount=5;
+elseif durationMins<=10
+    amount=10;
+elseif durationMins<=15
+    amount=15;
+elseif durationMins<=20
+    amount=20;
+elseif durationMins<=25
+    amount=25;
+elseif durationMins<=30
+    amount=30;
+elseif durationMins<=40
+    amount=40;
+elseif durationMins<=50
+    amount=50;
+elseif durationMins<=60
+    amount=60;
+else
+    amount=durationMins;
+end
+
+% Session summary figure
+screenSize = get(0, 'ScreenSize'); screenWidth=screenSize(3); screenHeight=screenSize(4);
+fig2=figure('Name','Session Summary','NumberTitle','off',...
+    'Position',[screenWidth/2-250, screenHeight/2-200,500,400],...
+    'Color',bgColor,'Resize','off');
+
+uicontrol('Style','text','Parent',fig2,'String','📋 SESSION SUMMARY','FontSize',20,'FontWeight','bold',...
+    'ForegroundColor',headerColor,'BackgroundColor',bgColor,'Position',[50, 350, 400, 30]);
+
+details = {
+    sprintf('👤 User: %s', userName)
+    sprintf('🔒 Locker: %d', lockerNum)
+    sprintf('🕐 Start Time: %s', datestr(startTime))
+    sprintf('🕒 End Time: %s', datestr(endTime))
+    sprintf('⏱️ Duration: %s', durationStr)
+    sprintf('💰 Amount: ₹%d', amount)
+};
+
+for i = 1:length(details)
+    uicontrol('Style','text','Parent',fig2,'String',details{i},...
+        'FontSize',12,'HorizontalAlignment','left','ForegroundColor','black',...
+        'BackgroundColor',bgColor,'Position',[100, 280-(i-1)*30, 350, 25]);
+end
+
+uicontrol('Style','pushbutton','Parent',fig2,'String','💳 ONLINE PAYMENT',...
+    'Position',[80, 80, 160, 45],'FontSize',12,'FontWeight','bold',...
+    'ForegroundColor','white','BackgroundColor',[0.2 0.5 0.8],...
+    'Callback',@(src,evt) onlinePayment(userName,lockerNum,startTime,endTime,durationSec));
+
+uicontrol('Style','pushbutton','Parent',fig2,'String','💵 CASH PAYMENT',...
+    'Position',[260, 80, 160, 45],'FontSize',12,'FontWeight','bold',...
+    'ForegroundColor','white','BackgroundColor',[0.8 0.6 0.2],...
+    'Callback',@(src,evt) cashPayment(userName,lockerNum,startTime,endTime,durationSec));
+end
+
+%% -------------------- Payment Functions --------------------
+function onlinePayment(userName,lockerNum,startTime,endTime,durationSec)
+durationMins = ceil(durationSec/60);
+% Assign URLs based on rate table
+if durationMins<=5
+    url='https://rzp.io/rzp/Bmj1OFr';
+elseif durationMins<=10
+    url='https://rzp.io/rzp/JH4UfTAX';
+elseif durationMins<=15
+    url='https://rzp.io/rzp/YLMI2zE';
+elseif durationMins<=20
+    url='https://rzp.io/rzp/grcZccn';
+elseif durationMins<=25
+    url='https://rzp.io/rzp/xwRjaQW';
+elseif durationMins<=30
+    url='https://rzp.io/rzp/4PMJd02';
+elseif durationMins<=40
+    url='https://rzp.io/rzp/HsCDBe9';
+elseif durationMins<=50
+    url='https://rzp.io/rzp/10C3DuBl';
+elseif durationMins<=60
+    url='https://rzp.io/rzp/HsCDBe9';
+else
+    url='https://rzp.io/rzp/10C3DuBl';
+end
+
+web(url); 
+choice=questdlg('Payment Completed?','Online Payment','Yes','No','Yes');
+if strcmp(choice,'Yes'), status='Paid Online'; else, status='Pending Online'; end
+
+% Calculate amount same as locker end
+minutesPart = floor(durationSec/60);
+secondsPart = round(mod(durationSec,60));
+if minutesPart<1, minutesPart=1; end
+
+if minutesPart<=5
+    amount=5;
+elseif minutesPart<=10
+    amount=10;
+elseif minutesPart<=15
+    amount=15;
+elseif minutesPart<=20
+    amount=20;
+elseif minutesPart<=25
+    amount=25;
+elseif minutesPart<=30
+    amount=30;
+elseif minutesPart<=40
+    amount=40;
+elseif minutesPart<=50
+    amount=50;
+elseif minutesPart<=60
+    amount=60;
+else
+    amount=minutesPart;
+end
+
+saveSession(userName,lockerNum,startTime,endTime,amount,status);
+end
+
+function cashPayment(userName,lockerNum,startTime,endTime,durationSec)
+prompt={'Enter Admin Username:','Enter Admin Password:'};
+dlgtitle='Admin Authentication'; dims=[1 35]; definput={'admin','admin'};
+answer=inputdlg(prompt,dlgtitle,dims,definput);
+if isempty(answer), return; end
+if strcmp(answer{1},'admin') && strcmp(answer{2},'admin')
+    msgbox('✅ Access Granted','Admin','modal');
+    durationMins = ceil(durationSec/60);
+    if durationMins<=5, amount=5;
+    elseif durationMins<=10, amount=10;
+    elseif durationMins<=15, amount=15;
+    elseif durationMins<=20, amount=20;
+    elseif durationMins<=25, amount=25;
+    elseif durationMins<=30, amount=30;
+    elseif durationMins<=40, amount=40;
+    elseif durationMins<=50, amount=50;
+    elseif durationMins<=60, amount=60;
+    else, amount=durationMins; end
+    status='Cash Payment'; saveSession(userName,lockerNum,startTime,endTime,amount,status);
+else
+    errordlg('❌ Access Denied','Admin'); 
+end
+end
+
+%% -------------------- Save Session + Firebase --------------------
+function saveSession(userName,lockerNum,startTime,endTime,amount,status)
+sessionData=struct('UserName',userName,'Locker',lockerNum,'StartTime',datestr(startTime),...
+    'EndTime',datestr(endTime),'Amount',amount,'PaymentStatus',status);
+
+if exist('sessions.mat','file')
+    load('sessions.mat','sessions');
+    if ~isstruct(sessions)
+        sessions = struct('UserName',{},'Locker',{},'StartTime',{},'EndTime',{},'Amount',{},'PaymentStatus',{}); 
+    end
+else
+    sessions = struct('UserName',{},'Locker',{},'StartTime',{},'EndTime',{},'Amount',{},'PaymentStatus',{}); 
+end
+
+sessions(end+1)=sessionData;
+save('sessions.mat','sessions');
+
+jsonData = jsonencode(sessions);
+fid = fopen('sessions.json','w');
+fprintf(fid,'%s',jsonData);
+fclose(fid);
+msgbox('✅ Session recorded successfully!','Success','modal');
+arduinoPort = "COM5"; % Change to your Arduino COM port
+    baudRate = 9600;
+    if ~isempty(instrfind('Port',arduinoPort))
+        fclose(instrfind('Port',arduinoPort));
+        delete(instrfind('Port',arduinoPort));
+    end
+    s = serialport(arduinoPort, baudRate);
+    writeline(s, password); pause(2); writeline(s, password); pause(2);
+    clear s;
+firebaseUrl='https://smartlockers-3ecaa-default-rtdb.firebaseio.com';
+authUrl=[firebaseUrl '/sessions.json'];
+try
+    options=weboptions('MediaType','application/json','RequestMethod','post','Timeout',30);
+    webwrite(authUrl,sessionData,options);
+    fprintf('✅ SUCCESS: session uploaded to Firebase!\n');
+catch ME
+    fprintf('⚠️ Firebase upload failed: %s\n',ME.message);
+end
+end
+
+end

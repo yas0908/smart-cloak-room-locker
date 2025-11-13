@@ -1,0 +1,81 @@
+#include <LiquidCrystal.h>
+
+#define BTN1 2
+#define BTN2 4
+#define BTN3 16
+#define BTN4 17
+#define BUZZ 19
+#define RX2 16  // Slave TX
+#define TX2 17  // Slave RX
+
+LiquidCrystal lcd(8, 9, 10, 11, 12, 13);
+char otp_recv[5] = {'\0','\0','\0','\0','\0'};
+char otp_enter[5] = {'\0','\0','\0','\0','\0'};
+
+void setup() {
+  Serial.begin(115200);            // Monitor
+  Serial2.begin(9600, SERIAL_8N1, RX2, TX2); // Serial to slave
+  lcd.begin(16,2);
+  pinMode(BTN1, INPUT);
+  pinMode(BTN2, INPUT);
+  pinMode(BTN3, INPUT);
+  pinMode(BTN4, INPUT);
+  pinMode(BUZZ, OUTPUT);
+  lcd.print("ESP32 Master Ready");
+}
+
+void loop() {
+  // Request OTP from slave
+  Serial2.println("SEND_OTP");
+  delay(500);
+
+  // Receive OTP
+  if (Serial2.available()) {
+    String tmp = Serial2.readStringUntil('\n');
+    tmp.trim();
+    for(int i=0;i<4;i++) otp_recv[i]=tmp.charAt(i);
+    otp_recv[4]='\0';
+    lcd.clear(); lcd.print("OTP Received");
+    delay(1000);
+
+    // Enter OTP
+    if(enterOTP()) {
+      lcd.clear(); lcd.print("Access Granted");
+      digitalWrite(BUZZ, HIGH); delay(500); digitalWrite(BUZZ, LOW);
+    } else {
+      lcd.clear(); lcd.print("Access Denied");
+      digitalWrite(BUZZ, HIGH); delay(2000); digitalWrite(BUZZ, LOW);
+    }
+  }
+
+  delay(2000);
+}
+
+bool enterOTP() {
+  for(int attempt=0; attempt<3; attempt++) {
+    lcd.clear(); lcd.print("Enter OTP:");
+    for(int i=0;i<4;i++) {
+      otp_enter[i] = getKey();
+      lcd.setCursor(i,1); lcd.print(otp_enter[i]);
+    }
+    delay(500);
+    if(matchOTP()) return true;
+    lcd.clear(); lcd.print("Try Again"); delay(1000);
+  }
+  return false;
+}
+
+bool matchOTP() {
+  for(int i=0;i<4;i++)
+    if(otp_enter[i] != otp_recv[i]) return false;
+  return true;
+}
+
+char getKey() {
+  while(true) {
+    if(digitalRead(BTN1)) { while(digitalRead(BTN1)); return '1'; }
+    if(digitalRead(BTN2)) { while(digitalRead(BTN2)); return '2'; }
+    if(digitalRead(BTN3)) { while(digitalRead(BTN3)); return '3'; }
+    if(digitalRead(BTN4)) { while(digitalRead(BTN4)); return '4'; }
+  }
+}
